@@ -6,15 +6,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @RestController
 public class RestApiController {
 
-    Map<Integer, Student> studentDatabase = new HashMap<>();
 
     /**
      * Hello World API endpoint.
@@ -44,11 +42,8 @@ public class RestApiController {
      * @return the list of students.
      */
     @GetMapping("students/all")
-    public Object getAllStudents() {
-        if (studentDatabase.isEmpty()) {
-            studentDatabase.put(1, new Student(1, "sample1", "csc", 3.86));
-        }
-        return studentDatabase.values();
+    public Object getAllStudents() throws IOException {
+        return StudentFileUtil.readAllStudents();
     }
 
     /**
@@ -58,8 +53,8 @@ public class RestApiController {
      * @return the student.
      */
     @GetMapping("students/{id}")
-    public Student getStudentById(@PathVariable int id) {
-        return studentDatabase.get(id);
+    public Student getStudentById(@PathVariable int id) throws IOException {
+        return StudentFileUtil.readStudentById(id);
     }
 
 
@@ -70,10 +65,24 @@ public class RestApiController {
      * @return the List of Students.
      */
     @PostMapping("students/create")
-    public Object createStudent(@RequestBody Student student) {
-        studentDatabase.put(student.getId(), student);
-        return studentDatabase.values();
+    public Object createStudent(@RequestBody Student student) throws IOException {
+        StudentFileUtil.writeStudent(student);
+        return StudentFileUtil.readAllStudents();
     }
+
+    /**
+     * Update a Student by id
+     *
+     * @param id the id of student to be updated
+     * @param student the new student info
+     * @return the list of students
+     */
+    @PutMapping("students/update/{id}")
+    public Object updateStudent(@PathVariable int id, @RequestBody Student student) throws IOException {
+            StudentFileUtil.updateStudent(id, student);
+            return StudentFileUtil.readAllStudents();
+    }
+
 
     /**
      * Delete a Student by id
@@ -82,9 +91,9 @@ public class RestApiController {
      * @return the List of Students.
      */
     @DeleteMapping("students/delete/{id}")
-    public Object deleteStudent(@PathVariable int id) {
-        studentDatabase.remove(id);
-        return studentDatabase.values();
+    public Object deleteStudent(@PathVariable int id) throws IOException {
+        StudentFileUtil.deleteStudent(id);
+        return StudentFileUtil.readAllStudents();
     }
 
     /**
@@ -149,5 +158,27 @@ public class RestApiController {
             return "error in /univ";
         }
 
+    }
+
+    @GetMapping("/bored")
+    public Object getActivity(){
+        try {
+            String url = "http://www.boredapi.com/api/activity/";
+            RestTemplate restTemplate = new RestTemplate();
+            ObjectMapper mapper = new ObjectMapper();
+
+            String jsonResponse = restTemplate.getForObject(url, String.class);
+            JsonNode root = mapper.readTree(jsonResponse);
+
+            String activity = root.get("activity").asText();
+            String type = root.get("type").asText();
+            System.out.println("Don't be bored! Try a " + type + " activity, like: " + activity);
+
+            return root;
+        } catch (JsonProcessingException ex) {
+            Logger.getLogger(RestApiController.class.getName()).log(Level.SEVERE,
+                    null, ex);
+            return "error in /imbored";
+        }
     }
 }
