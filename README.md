@@ -1,5 +1,5 @@
 # su24-rest-api-demo
-Demo REST API code from 5/15 Class.
+Demo REST API code
 
 Entries are recorded to 'students.json' instead of a hashmap.
 
